@@ -1,4 +1,5 @@
 import { Schema } from './Schema';
+import { v4 as uuidv4 } from 'uuid'
 
 /**
  * Input type definition for a request handler function.
@@ -85,7 +86,7 @@ export class RestRequest {
   private handlerFunc: (data: any) => Promise<any>;
   private loggerFunc: (
     data: any,
-    type: 'error' | 'success' | 'warning',
+    type: 'error' | 'success' | 'warning' | 'log',
   ) => void;
 
   /**
@@ -100,7 +101,7 @@ export class RestRequest {
    * @param {Schema} config.schema.response - Schema to validate response data.
    * @param {Record<string, any>} [config.responseHeader] - Optional. Additional response headers to override or extend default headers.
    * @param {(data: any) => Promise<any>} config.handler - The handler function to process request data and return a response. Must return a Promise.
-   * @param {(data: any, type: "error" | "success" | "warning") => undefined} [config.logger] - The handler function to print the logs.
+   * @param {(data: any, type: 'error' | 'success' | 'warning' | 'log') => void} [config.logger] - The handler function to print the logs.
    */
   constructor(config: {
     description?: string;
@@ -113,7 +114,7 @@ export class RestRequest {
     };
     responseHeader?: Record<string, any>;
     handler: (data: any) => Promise<any>;
-    logger?: (data: any, type: 'error' | 'success' | 'warning') => undefined;
+    logger?: (data: any, type: 'error' | 'success' | 'warning' | 'log') => void;
   }) {
     this.description = config.description || 'No description available';
     this.methods = config.methods || [];
@@ -123,7 +124,7 @@ export class RestRequest {
     this.handlerFunc = config.handler;
     this.loggerFunc =
       config.logger ||
-      ((data: any, type: 'error' | 'success' | 'warning') => {
+      ((data: any, type: 'error' | 'success' | 'warning' | 'log') => {
         type === 'error' && console.log(data);
       });
     this.responseHeader = {
@@ -141,14 +142,16 @@ export class RestRequest {
    *
    * @private
    * @param {Omit<RequestHandlerInput, "headers">} event - The request event excluding headers.
+   * @param {string} trackId - The track id to track the call
    * @returns {Promise<Omit<RequestHandlerOutput, "headers">>} The response object excluding headers.
    */
   private async handleRequest(
     event: Omit<RequestHandlerInput, 'headers'>,
+    trackId: string
   ): Promise<Omit<RequestHandlerOutput, 'headers'>> {
     if (this.methods.length > 0 && !this.methods.includes(event.method)) {
       const body = { message: 'Method not allowed' };
-      this.loggerFunc(body, 'error');
+      this.loggerFunc({ 'x-track-id': trackId, body, __type: "request_method_validation_error" }, 'error');
       return {
         statusCode: 405,
         body: JSON.stringify(body),
@@ -161,7 +164,7 @@ export class RestRequest {
       const body = {
         message: `Invalid request body. ${(error as Error).message}`,
       };
-      this.loggerFunc(body, 'error');
+      this.loggerFunc({ 'x-track-id': trackId, body, __type: "request_input_validation_error" }, 'error');
       return {
         statusCode: 400,
         body: JSON.stringify(body),
@@ -171,6 +174,7 @@ export class RestRequest {
     try {
       let result: any = {};
       try {
+        this.loggerFunc({ 'x-track-id': trackId, body: event.body, __type: "request_input" }, 'log');
         result = await this.handlerFunc(event.body);
       } catch (error) {
         throw new RestRequestError((error as Error).message, 500);
@@ -180,7 +184,7 @@ export class RestRequest {
         .validate(result)
         .fullDataObject();
 
-      this.loggerFunc(validatedResult, 'success');
+      this.loggerFunc({ 'x-track-id': trackId, validatedResult, __type: "request_response" }, 'log');
       return {
         statusCode: 200,
         body: JSON.stringify(validatedResult),
@@ -188,18 +192,17 @@ export class RestRequest {
     } catch (error) {
       if (error instanceof RestRequestError) {
         const body = { message: error.message };
-        this.loggerFunc(body, 'error');
+        this.loggerFunc({ 'x-track-id': trackId, body, __type: "request_handler_error" }, 'error');
         return {
           statusCode: error.status,
           body: JSON.stringify(body),
         };
       }
       const body = {
-        message: `Invalid response. ${
-          (error as Error).message || 'Internal server error'
-        }`,
+        message: `Invalid response. ${(error as Error).message || 'Internal server error'
+          }`,
       };
-      this.loggerFunc(body, 'error');
+      this.loggerFunc({ 'x-track-id': trackId, body, __type: "request_response_resolution_error" }, 'error');
       return {
         statusCode: 500,
         body: JSON.stringify(body),
@@ -211,14 +214,16 @@ export class RestRequest {
    * Public method to handle the request including headers. Calls `handleRequest` internally and adds response headers.
    *
    * @param {RequestHandlerInput} event - The request event including headers.
+   * @param {string} [trackId] - The track id to track the call
    * @returns {Promise<RequestHandlerOutput>} The response object including headers.
    */
-  async handle(event: RequestHandlerInput): Promise<RequestHandlerOutput> {
+  async handle(event: RequestHandlerInput, trackId: string = uuidv4().toString()): Promise<RequestHandlerOutput> {
     return {
-      ...(await this.handleRequest(event)),
+      ...(await this.handleRequest(event, trackId)),
       headers: {
         ...(this.responseHeader || {}),
         ...(event.headers || {}),
+        'x-req-track-id': trackId
       },
     };
   }
