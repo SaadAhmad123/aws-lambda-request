@@ -2,6 +2,10 @@
 
 The AWS Lambda Request package is a powerful tool designed to streamline the creation, validation, and handling of RESTful API requests within an AWS Lambda function. By including classes for request and response validation and encapsulating logic, it offers a reusable and testable framework for RESTful API development in AWS lambda. Moreover, it allows your code to automatically create the openapi spec for your application. Below you will find the installation instructions, features, usage examples, and additional support information.
 
+## Source code
+
+You can access the source code via [Github](https://github.com/SaadAhmad123/aws-lambda-request/tree/master)
+
 ## Installation
 
 You can install the `aws-lambda-request` package via npm with the following command:
