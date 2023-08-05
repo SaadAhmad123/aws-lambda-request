@@ -1,6 +1,6 @@
 {
   "name": "aws-lambda-request",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "This package allows to create lambda requests quickly as well as allow for the creation of openapi file",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
