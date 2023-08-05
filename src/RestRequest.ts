@@ -83,6 +83,10 @@ export class RestRequest {
     response: Schema;
   };
   private handlerFunc: (data: any) => Promise<any>;
+  private loggerFunc: (
+    data: any,
+    type: 'error' | 'success' | 'warning',
+  ) => void;
 
   /**
    * Constructs a RestRequest instance.
@@ -96,6 +100,7 @@ export class RestRequest {
    * @param {Schema} config.schema.response - Schema to validate response data.
    * @param {Record<string, any>} [config.responseHeader] - Optional. Additional response headers to override or extend default headers.
    * @param {(data: any) => Promise<any>} config.handler - The handler function to process request data and return a response. Must return a Promise.
+   * @param {(data: any, type: "error" | "success" | "warning") => undefined} [config.logger] - The handler function to print the logs.
    */
   constructor(config: {
     description?: string;
@@ -108,6 +113,7 @@ export class RestRequest {
     };
     responseHeader?: Record<string, any>;
     handler: (data: any) => Promise<any>;
+    logger?: (data: any, type: 'error' | 'success' | 'warning') => undefined;
   }) {
     this.description = config.description || 'No description available';
     this.methods = config.methods || [];
@@ -115,6 +121,11 @@ export class RestRequest {
     this.namespace = config.namespace;
     this.schema = config.schema;
     this.handlerFunc = config.handler;
+    this.loggerFunc =
+      config.logger ||
+      ((data: any, type: 'error' | 'success' | 'warning') => {
+        type === 'error' && console.log(data);
+      });
     this.responseHeader = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE',
@@ -136,46 +147,62 @@ export class RestRequest {
     event: Omit<RequestHandlerInput, 'headers'>,
   ): Promise<Omit<RequestHandlerOutput, 'headers'>> {
     if (this.methods.length > 0 && !this.methods.includes(event.method)) {
+      const body = { message: 'Method not allowed' };
+      this.loggerFunc(body, 'error');
       return {
         statusCode: 405,
-        body: JSON.stringify({ message: 'Method not allowed' }),
+        body: JSON.stringify(body),
       };
     }
 
     try {
       this.schema.request.validate(event.body);
     } catch (error) {
+      const body = {
+        message: `Invalid request body. ${(error as Error).message}`,
+      };
+      this.loggerFunc(body, 'error');
       return {
         statusCode: 400,
-        body: JSON.stringify({
-          message: `Invalid request body. ${(error as Error).message}`,
-        }),
+        body: JSON.stringify(body),
       };
     }
 
     try {
-      const result = await this.handlerFunc(event.body);
+      let result: any = {};
+      try {
+        result = await this.handlerFunc(event.body);
+      } catch (error) {
+        throw new RestRequestError((error as Error).message, 500);
+      }
+
       const validatedResult = this.schema.response
         .validate(result)
         .fullDataObject();
+
+      this.loggerFunc(validatedResult, 'success');
       return {
         statusCode: 200,
         body: JSON.stringify(validatedResult),
       };
     } catch (error) {
       if (error instanceof RestRequestError) {
+        const body = { message: error.message };
+        this.loggerFunc(body, 'error');
         return {
           statusCode: error.status,
-          body: JSON.stringify({ message: error.message }),
+          body: JSON.stringify(body),
         };
       }
+      const body = {
+        message: `Invalid response. ${
+          (error as Error).message || 'Internal server error'
+        }`,
+      };
+      this.loggerFunc(body, 'error');
       return {
         statusCode: 500,
-        body: JSON.stringify({
-          message: `Invalid response. ${
-            (error as Error).message || 'Internal server error'
-          }`,
-        }),
+        body: JSON.stringify(body),
       };
     }
   }
