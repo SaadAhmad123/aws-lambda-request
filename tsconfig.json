@@ -13,6 +13,7 @@
     "src/**/*.ts" // Include all TypeScript files in the 'src' directory
   ],
   "exclude": [
-    "node_modules" // Exclude 'node_modules' directory
+    "node_modules", // your existing exclude pattern
+    "**/*.spec.ts" // this line will exclude all .spec.ts files
   ]
 }

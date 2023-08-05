@@ -1,10 +1,10 @@
 # AWS Lambda Request Package
 
-The AWS Lambda Request package is designed to facilitate the creation, validation, and handling of RESTful API requests. This package also includes the `Schema` class to define validation schemas for both requests and responses.
+The AWS Lambda Request package is a powerful tool designed to streamline the creation, validation, and handling of RESTful API requests within an AWS Lambda function. By including classes for request and response validation and encapsulating logic, it offers a reusable and testable framework for RESTful API development in AWS lambda. Moreover, it allows your code to automatically create the openapi spec for your application. Below you will find the installation instructions, features, usage examples, and additional support information.
 
 ## Installation
 
-You can install this package from npm by running the following command:
+You can install the `aws-lambda-request` package via npm with the following command:
 
 ```bash
 npm install aws-lambda-request
@@ -12,17 +12,17 @@ npm install aws-lambda-request
 
 ## Features
 
-- **Encapsulated Logic**: All the logic required for processing and responding to RESTful API requests are encapsulated within the classes.
-- **Reusable and Testable**: Provides a clean, reusable, and testable interface for handling requests.
-- **Request and Response Validation**: Validates incoming requests and outgoing responses against defined Schemas.
-- **Method Type Checking**: Handles HTTP method type checking, error catching, and default response headers, including CORS.
-- **OpenAPI Schema Generation**: Generates OpenAPI 3.0 compliant JSON schema representing the REST request.
+- **Encapsulated Logic**: The package encapsulates all logic needed for processing and responding to RESTful API requests, providing a cleaner codebase.
+- **Reusable and Testable**: It offers a well-structured interface, enabling clean, reusable, and testable code.
+- **Request and Response Validation**: With the `Schema` class, you can define and validate incoming requests and outgoing responses.
+- **Method Type Checking**: The package handles HTTP method type checking, error handling, and default response headers, including CORS.
+- **OpenAPI Schema Generation**: Allows for OpenAPI 3.0 compliant JSON schema generation, representing the REST request.
 
 ## Usage
 
-### Schema Class
+### Defining Schemas with the Schema Class
 
-The `Schema` class is used to define a validation schema for request and response data.
+The `Schema` class is used to define validation schemas for both request and response data. Schemas can be constructed with various field types.
 
 ```typescript
 import { Schema, ValueField, FieldType } from 'aws-lambda-request';
@@ -33,9 +33,9 @@ const userSchema = new Schema({
 });
 ```
 
-### RestRequest Class
+### Handling Requests with the RestRequest Class
 
-The `RestRequest` class is used to manage the processing of HTTP requests and responses.
+The `RestRequest` class is the core class used to process HTTP requests and responses, providing flexibility and structure to your API.
 
 ```typescript
 import { RestRequest, Schema } from 'aws-lambda-request';
@@ -53,6 +53,8 @@ const restRequest = new RestRequest({
 
 const response = await restRequest.handle(requestInput);
 ```
+
+### Generating OpenAPI Compliant Schemas
 
 You can also generate an OpenAPI compliant JSON schema using the `jsonSchema` method:
 
@@ -112,6 +114,36 @@ export async function handler(event: any) {
   });
 }
 ```
+
+## Request handler process 
+
+```mermaid
+graph TD
+    A[Start: handleRequest]
+    B[Validate HTTP method]
+    C[Validate Request Body against Schema]
+    D[Call Handler Function]
+    E[Validate Response against Schema]
+    F[Construct Response]
+    G[End]
+    H[Method Not Allowed Error]
+    I[Invalid Request Body Error]
+    J[Handler Function Error]
+    K[Invalid Response Error]
+
+    A --> B
+    B -->|Valid| C
+    B -->|Invalid| H --> G
+    C -->|Valid| D
+    C -->|Invalid| I --> G
+    D -->|Success| E
+    D -->|Error| J --> G
+    E -->|Valid| F
+    E -->|Invalid| K --> G
+    F --> G
+
+```
+
 
 ## Documentation
 
