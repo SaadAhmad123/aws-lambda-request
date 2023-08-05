@@ -117,7 +117,9 @@ export async function handler(event: any) {
 
 ## Request handler process 
 
-```mermaid
+![iamge](./README/control_flow.png)
+
+```mermaid_md
 graph TD
     A[Start: handleRequest]
     B[Validate HTTP method]
@@ -144,15 +146,10 @@ graph TD
 
 ```
 
-
-## Documentation
-
-For more detailed information on available methods and their usage, please refer to the API documentation included with the package.
-
 ## Support
 
-For issues, feature requests, or general inquiries, please [open an issue](https://github.com/username/aws-lambda-request/issues) on GitHub.
+For issues, feature requests, or general inquiries, please [open an issue](https://github.com/SaadAhmad123/aws-lambda-request/issues) on GitHub.
 
 ## License
 
-This project is licensed under the [MIT License](./License.md). See the LICENSE file for details.
+This project is licensed under the [MIT License](https://github.com/SaadAhmad123/aws-lambda-request/blob/master/License.md). See the LICENSE file for details.
