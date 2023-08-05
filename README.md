@@ -117,7 +117,7 @@ export async function handler(event: any) {
 
 ## Request handler process 
 
-![iamge](./README/control_flow.png)
+![Algorithm](./README/control_flow.png)
 
 ```mermaid_md
 graph TD
