@@ -121,9 +121,7 @@ export async function handler(event: any) {
 
 ## Request handler process 
 
-![Algorithm](./README/control_flow.png)
-
-```mermaid_md
+```mermaid
 graph TD
     A[Start: handleRequest]
     B[Validate HTTP method]
