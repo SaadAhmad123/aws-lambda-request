@@ -149,8 +149,15 @@ export class RestRequest {
     event: Omit<RequestHandlerInput, 'headers'>,
     trackId: string
   ): Promise<Omit<RequestHandlerOutput, 'headers'>> {
+
+    this.loggerFunc({
+      event,
+      trackId,
+      __type: "request_input"
+    }, "log")
+
     if (this.methods.length > 0 && !this.methods.includes(event.method)) {
-      const body = { message: 'Method not allowed' };
+      const body = { message: `Method ${event.method} not allowed` };
       this.loggerFunc({ 'x-track-id': trackId, body, __type: "request_method_validation_error" }, 'error');
       return {
         statusCode: 405,
